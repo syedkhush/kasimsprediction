@@ -6,15 +6,27 @@
                 if (!symbol) return;
 
                 // Enforce perfect suffix layout
-                symbol = `${symbol}.BSE`;
+                // Exchange fallback handled automatically
+                const baseSymbol = symbol;
 
                 currentActiveSymbol = symbol.replace('.BSE', '');
                 sourceIndicator.textContent = `Fetching live Indian market data for ${symbol}...`;
 
                 try {
-                    // Correct functional endpoint payload
-                    const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}&apikey=${API_KEY}`);
-                    const data = await response.json();
+                    let data = null;
+                    let symbol = null;
+                    for (const ex of ['NSE','BSE']) {
+                        symbol = `${baseSymbol}.${ex}`;
+                        const response = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${API_KEY}`);
+                        const result = await response.json();
+                        if (result["Time Series (Daily)"]) {
+                            data = result;
+                            break;
+                        }
+                    }
+                    if (!data) {
+                        throw new Error("Unable to fetch live data for this symbol on NSE or BSE.");
+                    }
 
                     if (data["Note"]) {
                         throw new Error("Alpha Vantage free rate limit hit (5 requests/min). Please wait 60 seconds.");
