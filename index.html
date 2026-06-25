@@ -468,6 +468,77 @@
             border-top: 1px solid rgba(42, 54, 73, 0.4);
             padding-top: 1rem;
         }
+
+        /* ==========================================
+           RESPONSIVE MOBILE BREAKPOINTS
+           ========================================== */
+        @media (max-width: 968px) {
+            .container {
+                padding: 0 1.25rem;
+            }
+
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 2.5rem;
+                text-align: center;
+            }
+
+            .hero-content h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero-content p {
+                margin: 0 auto 2rem auto;
+            }
+
+            .hero-btns {
+                justify-content: center;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+
+            .chart-wrapper {
+                height: 350px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .navbar .container {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+
+            .nav-links {
+                gap: 1.25rem;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .api-config {
+                width: 100%;
+            }
+
+            .api-config input {
+                flex-grow: 1;
+            }
+
+            .about-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 1.5rem;
+            }
+
+            .social-links {
+                justify-content: center;
+            }
+        }
     </style>
 </head>
 <body>
@@ -752,7 +823,6 @@
                 for (let ex of exchangesToTry) {
                     let apiSymbol = `${baseSymbol}.${ex}`;
                     try {
-                        // FIXED: Replaced standard HTML entity codes with clean JS template literals
                         const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${apiSymbol}&apikey=${API_KEY}`);
                         const result = await response.json();
                         
