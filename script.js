@@ -1,207 +1,121 @@
-// --- Core Logic ---
-const AV_URL = 'https://www.alphavantage.co/query';
-let debounceTimer;
+// Camarilla Pivot Points Formula Engine
+function calculateCamarilla(high, low, close) {
+    const range = high - low;
+    
+    return {
+        r4: close + (range * 1.1 / 2),
+        r3: close + (range * 1.1 / 4),
+        r2: close + (range * 1.1 / 6),
+        r1: close + (range * 1.1 / 12),
+        s1: close - (range * 1.1 / 12),
+        s2: close - (range * 1.1 / 6),
+        s3: close - (range * 1.1 / 4),
+        s4: close - (range * 1.1 / 2)
+    };
+}
 
-document.addEventListener('DOMContentLoaded', () => {
-    initTicker();
-    checkApiKey();
-    setupEventListeners();
+// Global UI Elements
+const searchInput = document.getElementById('symbol-search');
+const saveKeyBtn = document.getElementById('save-key-btn');
+const clearKeyBtn = document.getElementById('clear-key-btn');
+const apiKeyInput = document.getElementById('api-key-input');
+const dashboard = document.getElementById('dashboard');
+const pivotLadder = document.getElementById('pivot-ladder');
+const sourceIndicator = document.getElementById('data-source-indicator');
+const marqueeTicker = document.getElementById('marquee-ticker');
+
+// Load API Key from local storage if it exists
+let apiKey = localStorage.getItem('alpha_vantage_key') || '';
+if (apiKey) {
+    apiKeyInput.value = '••••••••••••••••';
+    sourceIndicator.textContent = "Live Mode: Alpha Vantage API Active";
+}
+
+// Save API Key Function
+saveKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key && key !== '••••••••••••••••') {
+        apiKey = key;
+        localStorage.setItem('alpha_vantage_key', key);
+        apiKeyInput.value = '••••••••••••••••';
+        sourceIndicator.textContent = "Live Mode: Alpha Vantage API Active";
+        alert('API Key Saved Successfully!');
+    }
 });
 
-function initTicker() {
-    const marquee = document.getElementById('marquee-ticker');
-    // Double the data for seamless loop
-    const items = [...TICKER_DATA, ...TICKER_DATA];
-    marquee.innerHTML = items.map(item => `
-        <span class="ticker-item">
-            ${item.s} <span style="color: ${item.c.includes('+') ? 'var(--bull)' : 'var(--bear)'}">${item.c}</span>
-        </span>
-    `).join('');
-}
+// Clear API Key Function
+clearKeyBtn.addEventListener('click', () => {
+    apiKey = '';
+    localStorage.removeItem('alpha_vantage_key');
+    apiKeyInput.value = '';
+    sourceIndicator.textContent = "Demo Mode: Offline Data";
+    alert('API Key Cleared.');
+});
 
-function checkApiKey() {
-    const savedKey = localStorage.getItem('av_key');
-    if (savedKey) {
-        document.getElementById('api-key-input').value = '********';
-        updateDataSourceLabel(true);
-    }
-}
+// Listen for the "Enter" key on search input
+searchInput.addEventListener('keypress', async (e) => {
+    if (e.key === 'Enter') {
+        const symbol = searchInput.value.trim().toUpperCase();
+        if (!symbol) return;
 
-function updateDataSourceLabel(isLive) {
-    const label = document.getElementById('data-source-indicator');
-    label.innerText = isLive ? 'Mode: Live Alpha Vantage Data' : 'Demo Mode: Offline Data';
-    label.style.color = isLive ? 'var(--accent)' : 'var(--text-muted)';
-}
-
-function setupEventListeners() {
-    // API Key Storage
-    document.getElementById('save-key-btn').addEventListener('click', () => {
-        const key = document.getElementById('api-key-input').value;
-        if (key && key !== '********') {
-            localStorage.setItem('av_key', key);
-            alert('Key saved to localStorage');
-            updateDataSourceLabel(true);
-        }
-    });
-
-    document.getElementById('clear-key-btn').addEventListener('click', () => {
-        localStorage.removeItem('av_key');
-        document.getElementById('api-key-input').value = '';
-        updateDataSourceLabel(false);
-    });
-
-    // Search Logic
-    const searchInput = document.getElementById('symbol-search');
-    searchInput.addEventListener('input', (e) => {
-        clearTimeout(debounceTimer);
-        const query = e.target.value.toUpperCase();
-        if (query.length < 2) {
-            hideDropdown();
+        if (!apiKey) {
+            alert("Please enter and save your Alpha Vantage API Key first to fetch real-time data.");
             return;
         }
-        debounceTimer = setTimeout(() => handleSearch(query), 400);
-    });
 
-    // Close dropdown on click outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.search-container')) hideDropdown();
-    });
-}
+        sourceIndicator.textContent = `Fetching data for ${symbol}...`;
 
-async function handleSearch(query) {
-    const key = localStorage.getItem('av_key');
-    if (key) {
         try {
-            const res = await fetch(`${AV_URL}?function=SYMBOL_SEARCH&keywords=${query}&apikey=${key}`);
-            const data = await res.json();
-            if (data.bestMatches) {
-                showResults(data.bestMatches.map(m => ({
-                    symbol: m['1. symbol'],
-                    name: m['2. name']
-                })));
-                return;
+            // Fetch daily stock data from Alpha Vantage API
+            const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}&apikey=${apiKey}`);
+            const data = await response.json();
+
+            // Error handling for API rate limits or bad symbols
+            if (data["Note"] || data["Error Message"] || !data["Time Series (Daily)"]) {
+                throw new Error(data["Note"] || data["Error Message"] || "Invalid Symbol");
             }
-        } catch (e) { console.error("API Error", e); }
+
+            // Get the most recent day's data
+            const timeSeries = data["Time Series (Daily)"];
+            const dates = Object.keys(timeSeries);
+            const latestDate = dates[0];
+            const latestData = timeSeries[latestDate];
+
+            const high = parseFloat(latestData["2. high"]);
+            const low = parseFloat(latestData["3. low"]);
+            const close = parseFloat(latestData["4. close"]);
+
+            // Calculate Camarilla Support & Resistance Levels
+            const levels = calculateCamarilla(high, low, close);
+
+            // Display the Dashboard Grid
+            dashboard.classList.remove('hidden');
+
+            // Render levels beautifully into the Price Ladder panel
+            pivotLadder.innerHTML = `
+                <div class="ladder-row bear"><span>R4 (Breakout Target)</span><span class="mono">${levels.r4.toFixed(2)}</span></div>
+                <div class="ladder-row bear"><span>R3 (Reversal Zone)</span><span class="mono">${levels.r3.toFixed(2)}</span></div>
+                <div class="ladder-row bear"><span>R2 (Resistance)</span><span class="mono">${levels.r2.toFixed(2)}</span></div>
+                <div class="ladder-row bear"><span>R1 (Resistance)</span><span class="mono">${levels.r1.toFixed(2)}</span></div>
+                <div class="ladder-row active"><span>LAST CLOSE (${symbol})</span><span class="mono">${close.toFixed(2)}</span></div>
+                <div class="ladder-row bull"><span>S1 (Support)</span><span class="mono">${levels.s1.toFixed(2)}</span></div>
+                <div class="ladder-row bull"><span>S2 (Support)</span><span class="mono">${levels.s2.toFixed(2)}</span></div>
+                <div class="ladder-row bull"><span>S3 (Reversal Zone)</span><span class="mono">${levels.s3.toFixed(2)}</span></div>
+                <div class="ladder-row bull"><span>S4 (Breakout Target)</span><span class="mono">${levels.s4.toFixed(2)}</span></div>
+            `;
+
+            sourceIndicator.textContent = `Live Data Loaded: ${symbol} (${latestDate})`;
+
+        } catch (error) {
+            console.error(error);
+            sourceIndicator.textContent = "Error fetching live data. Check console or API key limit.";
+            alert(`Failed to fetch live data: ${error.message}`);
+        }
     }
-    
-    // Fallback to local
-    const localMatches = Object.keys(DEMO_QUOTES)
-        .filter(s => s.includes(query))
-        .map(s => ({ symbol: s, name: 'Offline Demo Symbol' }));
-    showResults(localMatches);
-}
+});
 
-function showResults(results) {
-    const dropdown = document.getElementById('search-results');
-    if (results.length === 0) {
-        hideDropdown();
-        return;
-    }
-    dropdown.innerHTML = results.map(r => `
-        <div class="search-item" onclick="selectSymbol('${r.symbol}')">
-            <strong>${r.symbol}</strong> <small>${r.name}</small>
-        </div>
-    `).join('');
-    dropdown.classList.remove('hidden');
-}
-
-function hideDropdown() {
-    document.getElementById('search-results').classList.add('hidden');
-}
-
-async function selectSymbol(symbol) {
-    hideDropdown();
-    document.getElementById('symbol-search').value = symbol;
-    
-    let quote;
-    const key = localStorage.getItem('av_key');
-    
-    if (key) {
-        try {
-            const res = await fetch(`${AV_URL}?function=TIME_SERIES_DAILY&symbol=${symbol}&apikey=${key}`);
-            const data = await res.json();
-            const timeSeries = data['Time Series (Daily)'];
-            if (timeSeries) {
-                const dates = Object.keys(timeSeries);
-                const latest = timeSeries[dates[0]];
-                const prev = timeSeries[dates[1]];
-                quote = {
-                    open: parseFloat(latest['1. open']),
-                    high: parseFloat(latest['2. high']),
-                    low: parseFloat(latest['3. low']),
-                    close: parseFloat(latest['4. close']),
-                    volume: latest['5. volume'],
-                    prevClose: parseFloat(prev['4. close'])
-                };
-            }
-        } catch (e) { console.error("Live Fetch Failed", e); }
-    }
-
-    if (!quote) quote = DEMO_QUOTES[symbol] || DEMO_QUOTES['AAPL'];
-    
-    renderDashboard(symbol, quote);
-}
-
-function renderDashboard(symbol, data) {
-    document.getElementById('dashboard').classList.remove('hidden');
-    
-    // 1. Calculations
-    const range = data.high - data.low;
-    const pivots = {
-        r4: data.close + (range * 1.1 / 2),
-        r3: data.close + (range * 1.1 / 4),
-        r2: data.close + (range * 1.1 / 6),
-        r1: data.close + (range * 1.1 / 12),
-        s1: data.close - (range * 1.1 / 12),
-        s2: data.close - (range * 1.1 / 6),
-        s3: data.close - (range * 1.1 / 4),
-        s4: data.close - (range * 1.1 / 2)
-    };
-
-    // 2. Render Ladder
-    const ladderEl = document.getElementById('pivot-ladder');
-    ladderEl.innerHTML = `
-        <div class="ladder-row bear"><span>R4 (Target)</span><span>${pivots.r4.toFixed(2)}</span></div>
-        <div class="ladder-row bear"><span>R3 (Reversal)</span><span>${pivots.r3.toFixed(2)}</span></div>
-        <div class="ladder-row"><span>R2</span><span>${pivots.r2.toFixed(2)}</span></div>
-        <div class="ladder-row"><span>R1</span><span>${pivots.r1.toFixed(2)}</span></div>
-        <div class="ladder-row active"><span>LAST CLOSE</span><span>${data.close.toFixed(2)}</span></div>
-        <div class="ladder-row"><span>S1</span><span>${data.s1?.toFixed(2) || (data.close - (range * 1.1 / 12)).toFixed(2)}</span></div>
-        <div class="ladder-row"><span>S2</span><span>${pivots.s2.toFixed(2)}</span></div>
-        <div class="ladder-row bull"><span>S3 (Reversal)</span><span>${pivots.s3.toFixed(2)}</span></div>
-        <div class="ladder-row bull"><span>S4 (Target)</span><span>${pivots.s4.toFixed(2)}</span></div>
-    `;
-
-    // 3. Fundamentals
-    const change = data.close - data.prevClose;
-    const changePct = (change / data.prevClose) * 100;
-    const fundEl = document.getElementById('fundamentals-grid');
-    fundEl.innerHTML = `
-        <div><span>Open</span><span>${data.open.toFixed(2)}</span></div>
-        <div><span>Day High</span><span>${data.high.toFixed(2)}</span></div>
-        <div><span>Day Low</span><span>${data.low.toFixed(2)}</span></div>
-        <div><span>Prev Close</span><span>${data.prevClose.toFixed(2)}</span></div>
-        <div><span>Change</span><span style="color: ${change >= 0 ? 'var(--bull)' : 'var(--bear)'}">
-            ${change >= 0 ? '+' : ''}${change.toFixed(2)} (${changePct.toFixed(2)}%)
-        </span></div>
-        <div><span>Volume</span><span>${data.volume}</span></div>
-    `;
-
-    // 4. Journal
-    const journalEl = document.getElementById('journal-list');
-    const logs = DECISION_LOG[symbol] || [];
-    if (logs.length === 0) {
-        journalEl.innerHTML = `<p class="muted">No trade logs found for ${symbol}.</p>`;
-    } else {
-        journalEl.innerHTML = logs.map(entry => `
-            <div class="entry">
-                <div class="entry-meta">
-                    <span class="action-${entry.action.toLowerCase()}">${entry.action}</span>
-                    <span class="muted">${entry.date}</span>
-                </div>
-                <div>Price: <span class="mono">${entry.price.toFixed(2)}</span></div>
-                <p class="muted" style="margin-top:5px italic">${entry.note}</p>
-            </div>
-        `).join('');
-    }
-}
+// Setup a clean dummy ticker text row for the marquee top-bar
+marqueeTicker.innerHTML = `
+    <span>AAPL: +1.2% &nbsp;&nbsp;|&nbsp;&nbsp; TSLA: -0.8% &nbsp;&nbsp;|&nbsp;&nbsp; NVDA: +2.4% &nbsp;&nbsp;|&nbsp;&nbsp; AMD: +3.1% &nbsp;&nbsp;|&nbsp;&nbsp; MSFT: -0.2% &nbsp;&nbsp;|&nbsp;&nbsp;</span>
+    <span>AAPL: +1.2% &nbsp;&nbsp;|&nbsp;&nbsp; TSLA: -0.8% &nbsp;&nbsp;|&nbsp;&nbsp; NVDA: +2.4% &nbsp;&nbsp;|&nbsp;&nbsp; AMD: +3.1% &nbsp;&nbsp;|&nbsp;&nbsp; MSFT: -0.2% &nbsp;&nbsp;|&nbsp;&nbsp;</span>
+`;
