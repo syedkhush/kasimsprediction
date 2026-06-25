@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PivotDesk | Intraday Trading Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Ticker Marquee -->
+    <div class="ticker-wrap">
+        <div class="ticker" id="marquee-ticker">
+            <!-- Populated by JS -->
+        </div>
+    </div>
+
+    <nav class="navbar">
+        <div class="container">
+            <a href="#" class="logo">Pivot<span>Desk</span></a>
+            <ul class="nav-links">
+                <li><a href="#lookup">Live Lookup</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="https://github.com" target="_blank">GitHub</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="container hero-grid">
+            <div class="hero-content">
+                <h1>Search a stock.<br>See where it <span class="accent">turns.</span></h1>
+                <p>Real-time price intelligence powered by Camarilla Pivot points. Identify institutional supply and demand zones instantly.</p>
+                <div class="hero-btns">
+                    <a href="#lookup" class="btn btn-primary">Start Analyzing</a>
+                    <a href="#features" class="btn btn-outline">How it works</a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="ladder-preview">
+                    <div class="ladder-row bear"><span>R4</span><span class="mono">198.45</span></div>
+                    <div class="ladder-row bear"><span>R3</span><span class="mono">195.20</span></div>
+                    <div class="ladder-row active"><span>PRICE</span><span class="mono">192.10</span></div>
+                    <div class="ladder-row bull"><span>S3</span><span class="mono">189.05</span></div>
+                    <div class="ladder-row bull"><span>S4</span><span class="mono">185.80</span></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <section id="lookup" class="lookup-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Live Lookup</h2>
+                <div class="api-config">
+                    <input type="password" id="api-key-input" placeholder="Alpha Vantage API Key">
+                    <button id="save-key-btn" class="btn-sm">Save</button>
+                    <button id="clear-key-btn" class="btn-sm muted">Clear</button>
+                </div>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="symbol-search" placeholder="Search symbol (e.g. AAPL, TSLA, RELIANCE.BSE)..." autocomplete="off">
+                <div id="search-results" class="search-dropdown hidden"></div>
+                <p id="data-source-indicator" class="mono-label">Demo Mode: Offline Data</p>
+            </div>
+
+            <div id="dashboard" class="dashboard-grid hidden">
+                <!-- Vertical Ladder -->
+                <div class="card ladder-card">
+                    <h3>Price Ladder</h3>
+                    <div id="pivot-ladder" class="ladder-display"></div>
+                </div>
+
+                <!-- Fundamentals -->
+                <div class="card">
+                    <h3>Fundamentals</h3>
+                    <div id="fundamentals-grid" class="fundamentals-list mono">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Decision Journal -->
+                <div class="card">
+                    <h3>Decision Journal</h3>
+                    <div id="journal-list" class="journal-entries">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features-grid">
+        <div class="container grid-4">
+            <div class="feature-card">
+                <div class="icon">🔍</div>
+                <h4>Live Symbol Lookup</h4>
+                <p>Global market access via Alpha Vantage integration.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📐</div>
+                <h4>Camarilla Engine</h4>
+                <p>Mathematical precision for intraday reversals.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📊</div>
+                <h4>Fundamentals</h4>
+                <p>Daily OHLCV data at a single glance.</p>
+            </div>
+            <div class="feature-card">
+                <div class="icon">📓</div>
+                <h4>Decision Journal</h4>
+                <p>Historical trade logs for continuous improvement.</p>
+            </div>
+        </div>
+    </section>
+
+    <div class="tech-stack">
+        <div class="container">
+            <span class="badge">HTML5</span>
+            <span class="badge">CSS3</span>
+            <span class="badge">Vanilla JS</span>
+            <span class="badge">Alpha Vantage API</span>
+            <span class="badge">GitHub Pages</span>
+        </div>
+    </div>
+
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="about-card">
+                <div class="avatar">KK</div>
+                <div class="about-info">
+                    <h3>Kasim Khan</h3>
+                    <p>Developer & Quantitative Trader. Building tools to simplify market complexity and enhance decision-making through data.</p>
+                    <div class="social-links">
+                        <a href="#">GitHub</a>
+                        <a href="#">LinkedIn</a>
+                        <a href="#">Email</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 PivotDesk. Designed by Kasim Khan.</p>
+            <p class="disclaimer"><strong>Disclaimer:</strong> Not investment advice. Trading involves significant risk. This tool is for educational and showcase purposes only.</p>
+        </div>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
