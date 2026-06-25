@@ -194,7 +194,7 @@
         .btn-outline {
             border: 1px solid var(--border);
             color: var(--text-main);
-        }
+            }
 
         .btn-outline:hover {
             background: var(--bg-accent);
@@ -448,10 +448,25 @@
             border-top: 1px solid var(--border);
         }
 
+        footer .footer-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        footer .maverick-credit span {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
         footer .disclaimer {
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             font-size: 0.8rem;
             line-height: 1.4;
+            border-top: 1px solid rgba(42, 54, 73, 0.4);
+            padding-top: 1rem;
         }
     </style>
 </head>
@@ -615,7 +630,10 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 PivotDesk. Designed by Kasim Khan.</p>
+            <div class="footer-meta">
+                <p>&copy; 2026 PivotDesk.</p>
+                <p class="maverick-credit">Designed and Engineered by <span>Maverick Solutions</span> for Kasim Khan.</p>
+            </div>
             <p class="disclaimer"><strong>Disclaimer:</strong> Not investment advice. Trading involves significant risk. This tool is for educational and showcase purposes only.</p>
         </div>
     </footer>
@@ -665,12 +683,19 @@
         document.getElementById('api-key-input').value = '••••••••••••••••';
         sourceIndicator.textContent = "Live Mode: Alpha Vantage Core Active (EIKH0Z...)";
 
-        // Dynamic Chart Frame Reloader
+        // Dynamic Chart Frame Reloader (Fixed Exchange Selector mapping)
         function renderTradingViewChart(symbol) {
+            const cleanSymbol = symbol.replace('.BSE', '').replace('.NSE', '').trim().toUpperCase();
+            
+            const container = document.getElementById('tv-chart-container');
+            if (container) {
+                container.innerHTML = "";
+            }
+
             new TradingView.widget({
                 "width": "100%",
                 "height": 450,
-                "symbol": "BSE:" + symbol,
+                "symbol": "BSE:" + cleanSymbol, 
                 "interval": "D",
                 "timezone": "Asia/Kolkata",
                 "theme": "dark",
@@ -712,19 +737,17 @@
         // Main Core API Search Execution Pipeline
         searchInput.addEventListener('keypress', async (e) => {
             if (e.key === 'Enter') {
-                // Strip spaces and clean existing trailing suffixes to standardize
-                let symbol = searchInput.value.trim().toUpperCase().replace(/\s+/g, '').replace('.BSE', '');
-                if (!symbol) return;
+                let rawInput = searchInput.value.trim().toUpperCase().replace(/\s+/g, '');
+                if (!rawInput) return;
 
-                // Enforce perfect suffix layout
-                symbol = `${symbol}.BSE`;
+                let baseSymbol = rawInput.replace('.BSE', '').replace('.NSE', '');
+                let apiSymbol = `${baseSymbol}.BSE`;
+                currentActiveSymbol = baseSymbol;
 
-                currentActiveSymbol = symbol.replace('.BSE', '');
-                sourceIndicator.textContent = `Fetching live Indian market data for ${symbol}...`;
+                sourceIndicator.textContent = `Fetching live Indian market data for ${apiSymbol}...`;
 
                 try {
-                    // Correct functional endpoint payload
-                    const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${symbol}&apikey=${API_KEY}`);
+                    const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${apiSymbol}&apikey=${API_KEY}`);
                     const data = await response.json();
 
                     if (data["Note"]) {
@@ -749,7 +772,7 @@
                     const volume = parseInt(latestData["5. volume"]);
                     
                     lastFetchedClosePrice = close;
-                    slPriceInput.value = (close * 0.99).toFixed(2); // Auto defaults SL to 1% below entry
+                    slPriceInput.value = (close * 0.99).toFixed(2);
                     calcResult.textContent = "";
 
                     const prevClose = parseFloat(prevData["4. close"]);
@@ -758,13 +781,14 @@
 
                     const levels = calculateCamarilla(high, low, close);
                     
-                    // CRITICAL FIX: Unhide the DOM workspace container FIRST before invoking TradingView layout paints
+                    // Reveal the layout containers explicitly before initializing the chart frame
                     workspace.classList.remove('hidden');
-                    
-                    // Step macro-task processing boundary to ensure display container paint complete
+                    workspace.style.display = "block";
+
+                    // Fire Charting Frame with a slight macro-task delay to allow DOM painting
                     setTimeout(() => {
                         renderTradingViewChart(currentActiveSymbol);
-                    }, 50);
+                    }, 150);
 
                     // Render Pivot Rows
                     pivotLadder.innerHTML = `
@@ -806,6 +830,7 @@
 
                     sourceIndicator.textContent = `Live NSE/BSE Session: ${currentActiveSymbol} (${latestDate})`;
                     displayJournalEntries();
+                    searchInput.value = "";
 
                 } catch (error) {
                     console.error(error);
