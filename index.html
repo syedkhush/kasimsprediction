@@ -823,7 +823,8 @@
                 for (let ex of exchangesToTry) {
                     let apiSymbol = `${baseSymbol}.${ex}`;
                     try {
-                        const response = await fetch(`https://www.alphavantage.co/query?function=DAILY&symbol=${apiSymbol}&apikey=${API_KEY}`);
+                        // FIXED: Replaced standard function name with exact 'TIME_SERIES_DAILY' endpoint parameter
+                        const response = await fetch(`https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=${apiSymbol}&apikey=${API_KEY}`);
                         const result = await response.json();
                         
                         if (result["Note"]) {
